@@ -48,6 +48,7 @@
     "ethers": "^5.4.1",
     "hardhat": "2.8.3",
     "hardhat-gas-reporter": "^1.0.4",
+    "merkletreejs": "^0.2.31",
     "minimist": "^1.2.5",
     "pify": "^5.0.0",
     "prettier": "^2.3.2",
@@ -63,6 +64,7 @@
     "ethereumjs-abi": "^0.6.8"
   },
   "dependencies": {
+    "@chainlink/contracts": "^0.4.1",
     "@opengsn/contracts": "^2.2.2",
     "@openzeppelin/contracts": "3.4.1",
     "@openzeppelin/contracts-newone": "npm:@openzeppelin/contracts@4.1.0",
