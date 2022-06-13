@@ -226,7 +226,8 @@ describe('NFT tests', () => {
         await contract.claimCliff(1, {from: addr.address});
 
         expect(await contract.getTokenStatus(1 + shift)).to.equal(2);
-        // expect(await vesting.balanceOf(EYWANFT.address)).to.equal(vestingSupply - (vestingSupply * addr.amount / totalScore));
+        const contractBalance = Math.round(vestingSupply - vestingSupply * addr.amount / totalScore * 0.1);
+        expect(await vesting.balanceOf(EYWANFT.address)).to.equal(contractBalance);
         expect(await contract.balanceOf(addr.address)).to.equal(1);
         expect(await contract.ownerOf(1 + shift)).to.equal(addr.address);
 
@@ -236,7 +237,8 @@ describe('NFT tests', () => {
         expect(await contract.getTokenStatus(1 + shift * 2)).to.equal(3);
         expect(await contract.ownerOf(1 + shift * 2)).to.equal(addr.address);
         expect(await contract.balanceOf(addr.address)).to.equal(1);
-        // expect(await vesting.balanceOf(addr.address)).to.equal(addr.amount * 0.9);
+        const vestingBalance = Math.floor(vestingSupply * addr.amount / totalScore * 0.9);
+        expect(await vesting.balanceOf(addr.address)).to.equal(vestingBalance);
 
     });
 

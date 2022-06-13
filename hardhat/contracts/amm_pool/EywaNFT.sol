@@ -148,7 +148,7 @@ contract EywaNFT is ERC721Enumerable, Ownable, ERC721Burnable {
 
     function _pickRandomUniqueIdTierFour() private returns (uint256 id) {
         uint256 random = uint256(vrf());
-        uint256 len = tierFourArray.length - tierThreeIndex++;
+        uint256 len = tierFourArray.length - tierFourIndex++;
         require(len > 0, 'no ids left');
         uint256 randomIndex = random % len;
         id = tierFourArray[randomIndex] != 0 ? tierFourArray[randomIndex] : randomIndex;
