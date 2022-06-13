@@ -43,7 +43,6 @@ describe('NFT tests', () => {
     let tokenErc20;
     let vesting;
     let adminDeployer;
-    let earlyTransferPermissionAdmin;
     let addr1;
     let addr2;
     let addr3;
@@ -70,7 +69,7 @@ describe('NFT tests', () => {
 
 
     before(async () => {
-        [adminDeployer, earlyTransferPermissionAdmin, addr1, addr2, addr3, addr4, ...addrs] = await ethers.getSigners();
+        [adminDeployer, addr1, addr2, addr3, addr4, ...addrs] = await ethers.getSigners();
 
         const ERC20 = await ethers.getContractFactory('PermitERC20');
         tokenErc20 = await ERC20
@@ -93,7 +92,7 @@ describe('NFT tests', () => {
             address: addr3.address, amount: 3500
         });
 
-        totalScore = merkleAddresses.reduce((a, x) => a +x.amount, 0)
+        totalScore = merkleAddresses.reduce((a, x) => a + x.amount, 0);
 
         EYWANFTContract = await ethers.getContractFactory('EywaNFT');
         EYWANFT = await EYWANFTContract
@@ -195,8 +194,6 @@ describe('NFT tests', () => {
         contract = EYWANFT.connect(addr2);
         await contract.mint(proof, addr.amount, {from: addr.address});
         expect(await contract.ownerOf(25083)).to.equal(addr.address);
-
-
     });
 
     it('mint and claim cliff', async function () {
@@ -231,6 +228,12 @@ describe('NFT tests', () => {
         expect(await contract.balanceOf(addr.address)).to.equal(1);
         expect(await contract.ownerOf(1 + shift)).to.equal(addr.address);
 
+        await expect(contract.activateVesting(1, {from: addr.address}))
+            .to.be
+            .revertedWith('Vesting period not started');
+
+        await EYWANFT.connect(adminDeployer).startVesting({from: adminDeployer.address});
+
         await contract.activateVesting(1 + shift, {from: addr.address});
 
         expect(await contract.getTokenStatus(1 + shift)).to.equal(0);
@@ -241,6 +244,15 @@ describe('NFT tests', () => {
         expect(await vesting.balanceOf(addr.address)).to.equal(vestingBalance);
 
     });
+
+
+    it('mint for team', async function () {
+        await increaseTime(day_in_seconds * 51000);
+        let contract = EYWANFT.connect(adminDeployer);
+        await contract.claimTeamNft({from: adminDeployer.address, gasLimit: '100000000000000'});
+
+    });
+
 
 
 });

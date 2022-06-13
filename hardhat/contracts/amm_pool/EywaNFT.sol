@@ -88,11 +88,11 @@ contract EywaNFT is ERC721Enumerable, Ownable, ERC721Burnable {
     }
 
     function startVesting() external onlyOwner {
-        claimingActive = true;
+        vestingActive = true;
     }
 
     function stopVesting() external onlyOwner {
-        claimingActive = false;
+        vestingActive = false;
     }
 
     function setTotalScore(uint256 _totScore) external onlyOwner {
@@ -271,7 +271,7 @@ contract EywaNFT is ERC721Enumerable, Ownable, ERC721Burnable {
     }
 
     function claimTeamNft() external onlyOwner {
-        require(teamClaimed != false, "Team already claimed");
+        require(teamClaimed == false, "Team already claimed");
         for (uint256 _tokenId = TEAM_START; _tokenId <= TEAM_START + 1000; _tokenId++) {
             claimableAmount[_tokenId] = 0;
             _safeMint(msg.sender, _tokenId);
