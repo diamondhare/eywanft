@@ -18,36 +18,39 @@ contract EywaNFT is ERC721Enumerable, Ownable, ERC721Burnable {
 
     uint256 public immutable CLIFF_PERCENT = 10;
 
-    uint256 private tierOneMinted;
     uint256 private TIER_ONE_START = 1;
     uint256 private TIER_ONE_SUPPLY = 25082;
     uint256 private TIER_ONE_MIN_SCORE = 110;
     uint256 private TIER_ONE_MAX_SCORE = 2000;
+    uint16[25082] private tierOneArray;
+    uint16 private tierOneIndex;
 
-    uint256 private tierTwoMinted;
     uint256 private TIER_TWO_START = 25083;
     uint256 private TIER_TWO_SUPPLY = 23866;
     uint256 private TIER_TWO_MAX_SCORE = 3000;
+    uint16[23866] private tierTwoArray;
+    uint16 private tierTwoIndex;
 
-    uint256 private tierThreeMinted;
     uint256 private TIER_THREE_START = 48950;
     uint256 private TIER_THREE_SUPPLY = 3678;
     uint256 private TIER_THREE_MAX_SCORE = 5000;
+    uint16[3678] private tierThreeArray;
+    uint16 private tierThreeIndex;
 
-    uint256 private tierFourMinted;
     uint256 private TIER_FOUR_START = 52629;
-    uint256 private TIER_FOUR_SUPPLY = 3678;
+    uint256 private TIER_FOUR_SUPPLY = 401;
     uint256 private TIER_FOUR_MAX_SCORE = 100000;
+    uint16[401] private tierFourArray;
+    uint16 private tierFourIndex;
 
+
+    bool public claimingActive;
     bool public saleActive;
-    bool public offsetDone;
 
     uint256 private allocation;
     uint256 private totalScore;
     bytes32 private merkleRoot;
     string private baseURI;
-
-    bool public claimingActive;
 
     mapping(uint256 => uint8) private tokenStatus;
     mapping(uint256 => uint256) private claimableAmount;
@@ -113,6 +116,46 @@ contract EywaNFT is ERC721Enumerable, Ownable, ERC721Burnable {
         Address.sendValue(payable(owner()), balance);
     }
 
+    function _pickRandomUniqueIdTierOne() private returns (uint256 id) {
+        uint256 random = uint256(vrf());
+        uint256 len = tierOneArray.length - tierOneIndex++;
+        require(len > 0, 'no ids left');
+        uint256 randomIndex = random % len;
+        id = tierOneArray[randomIndex] != 0 ? tierOneArray[randomIndex] : randomIndex;
+        tierOneArray[randomIndex] = uint16(tierOneArray[len - 1] == 0 ? len - 1 : tierOneArray[len - 1]);
+        tierOneArray[len - 1] = 0;
+    }
+
+    function _pickRandomUniqueIdTierTwo() private returns (uint256 id) {
+        uint256 random = uint256(vrf());
+        uint256 len = tierTwoArray.length - tierTwoIndex++;
+        require(len > 0, 'no ids left');
+        uint256 randomIndex = random % len;
+        id = tierTwoArray[randomIndex] != 0 ? tierTwoArray[randomIndex] : randomIndex;
+        tierTwoArray[randomIndex] = uint16(tierTwoArray[len - 1] == 0 ? len - 1 : tierTwoArray[len - 1]);
+        tierTwoArray[len - 1] = 0;
+    }
+
+    function _pickRandomUniqueIdTierThree() private returns (uint256 id) {
+        uint256 random = uint256(vrf());
+        uint256 len = tierThreeArray.length - tierThreeIndex++;
+        require(len > 0, 'no ids left');
+        uint256 randomIndex = random % len;
+        id = tierThreeArray[randomIndex] != 0 ? tierThreeArray[randomIndex] : randomIndex;
+        tierThreeArray[randomIndex] = uint16(tierThreeArray[len - 1] == 0 ? len - 1 : tierThreeArray[len - 1]);
+        tierThreeArray[len - 1] = 0;
+    }
+
+    function _pickRandomUniqueIdTierFour() private returns (uint256 id) {
+        uint256 random = uint256(vrf());
+        uint256 len = tierFourArray.length - tierThreeIndex++;
+        require(len > 0, 'no ids left');
+        uint256 randomIndex = random % len;
+        id = tierFourArray[randomIndex] != 0 ? tierFourArray[randomIndex] : randomIndex;
+        tierFourArray[randomIndex] = uint16(tierFourArray[len - 1] == 0 ? len - 1 : tierFourArray[len - 1]);
+        tierFourArray[len - 1] = 0;
+    }
+
     function mint(bytes32[] calldata _merkleProof, uint256 score) external {
         require(saleActive, "Sale is closed");
         require(merkleRoot != 0, "Merkle root not set");
@@ -126,26 +169,21 @@ contract EywaNFT is ERC721Enumerable, Ownable, ERC721Burnable {
                 )
             ), "Invalid proof");
 
+
         uint256 _tokenId;
 
-        // TODO: add harmony vrf random
-
         if (TIER_ONE_MIN_SCORE <= score && score <= TIER_ONE_MAX_SCORE) {
-            require(tierOneMinted <= TIER_ONE_SUPPLY, "Tier 1 supply ended.");
-            _tokenId = TIER_ONE_START + tierOneMinted;
-            tierOneMinted++;
+            require(tierOneIndex + 1 <= TIER_ONE_SUPPLY, "Tier 1 supply ended");
+            _tokenId = _pickRandomUniqueIdTierOne() + TIER_ONE_START;
         } else if (TIER_ONE_MAX_SCORE < score && score <= TIER_TWO_MAX_SCORE) {
-            require(tierTwoMinted <= TIER_TWO_SUPPLY, "Tier 2 supply ended.");
-            _tokenId = TIER_TWO_START + tierTwoMinted;
-            tierTwoMinted++;
+            require(tierTwoIndex + 1 <= TIER_TWO_SUPPLY, "Tier 2 supply ended");
+            _tokenId = _pickRandomUniqueIdTierTwo() + TIER_TWO_START;
         } else if (TIER_TWO_MAX_SCORE < score && score <= TIER_THREE_MAX_SCORE) {
-            require(tierThreeMinted <= TIER_THREE_SUPPLY, "Tier 3 supply ended.");
-            _tokenId = TIER_THREE_START + tierThreeMinted;
-            tierThreeMinted++;
+            require(tierThreeIndex + 1 <= TIER_THREE_SUPPLY, "Tier 3 supply ended");
+            _tokenId = _pickRandomUniqueIdTierThree() + TIER_THREE_START;
         } else if (TIER_FOUR_MAX_SCORE < score && score <= TIER_FOUR_MAX_SCORE) {
-            require(tierFourMinted <= TIER_FOUR_SUPPLY, "Tier 4 supply ended.");
-            _tokenId = TIER_FOUR_START + tierFourMinted;
-            tierFourMinted++;
+            require(tierFourIndex + 1 <= TIER_FOUR_SUPPLY, "Tier 4 supply ended");
+            _tokenId = _pickRandomUniqueIdTierFour() + TIER_FOUR_START;
         } else {
             revert("Score out of bounds");
         }
