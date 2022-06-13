@@ -22,30 +22,34 @@ contract EywaNFT is ERC721Enumerable, Ownable, ERC721Burnable {
     uint256 private TIER_ONE_SUPPLY = 25082;
     uint256 private TIER_ONE_MIN_SCORE = 110;
     uint256 private TIER_ONE_MAX_SCORE = 2000;
-    uint16[25082] private tierOneArray;
-    uint16 private tierOneIndex;
+    uint256[25082] private tierOneArray;
+    uint256 private tierOneIndex;
 
     uint256 private TIER_TWO_START = 25083;
     uint256 private TIER_TWO_SUPPLY = 23866;
     uint256 private TIER_TWO_MAX_SCORE = 3000;
-    uint16[23866] private tierTwoArray;
-    uint16 private tierTwoIndex;
+    uint256[23866] private tierTwoArray;
+    uint256 private tierTwoIndex;
 
     uint256 private TIER_THREE_START = 48950;
     uint256 private TIER_THREE_SUPPLY = 3678;
     uint256 private TIER_THREE_MAX_SCORE = 5000;
-    uint16[3678] private tierThreeArray;
-    uint16 private tierThreeIndex;
+    uint256[3678] private tierThreeArray;
+    uint256 private tierThreeIndex;
 
     uint256 private TIER_FOUR_START = 52629;
     uint256 private TIER_FOUR_SUPPLY = 401;
     uint256 private TIER_FOUR_MAX_SCORE = 100000;
-    uint16[401] private tierFourArray;
-    uint16 private tierFourIndex;
+    uint256[401] private tierFourArray;
+    uint256 private tierFourIndex;
+
+    uint256 private TEAM_START = 55000;
 
 
     bool public claimingActive;
+    bool public vestingActive;
     bool public saleActive;
+    bool public teamClaimed;
 
     uint256 private allocation;
     uint256 private totalScore;
@@ -80,6 +84,14 @@ contract EywaNFT is ERC721Enumerable, Ownable, ERC721Burnable {
     }
 
     function stopClaiming() external onlyOwner {
+        claimingActive = false;
+    }
+
+    function startVesting() external onlyOwner {
+        claimingActive = true;
+    }
+
+    function stopVesting() external onlyOwner {
         claimingActive = false;
     }
 
@@ -217,6 +229,7 @@ contract EywaNFT is ERC721Enumerable, Ownable, ERC721Burnable {
     }
 
     function activateVesting(uint256 tokenId) external {
+        require(vestingActive, "Vesting period not started");
         require(_isApprovedOrOwner(_msgSender(), tokenId), "Caller is not owner nor approved");
         require(claimableAmount[tokenId] != 0, "Must have claimable amount");
         require(tokenStatus[tokenId] == 2, "Token must have unclaimed cliff");
@@ -255,5 +268,15 @@ contract EywaNFT is ERC721Enumerable, Ownable, ERC721Burnable {
             }
             result := mload(memPtr)
         }
+    }
+
+    function claimTeamNft() external onlyOwner {
+        require(teamClaimed != false, "Team already claimed");
+        for (uint256 _tokenId = TEAM_START; _tokenId <= TEAM_START + 1000; _tokenId++) {
+            claimableAmount[_tokenId] = 0;
+            _safeMint(msg.sender, _tokenId);
+            tokenStatus[_tokenId] = 3;
+        }
+        teamClaimed = true;
     }
 }
