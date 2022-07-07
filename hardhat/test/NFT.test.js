@@ -246,13 +246,12 @@ describe('NFT tests', () => {
     });
 
 
-    it('mint for team', async function () {
-        await increaseTime(day_in_seconds * 51000);
-        let contract = EYWANFT.connect(adminDeployer);
-        await contract.claimTeamNft({from: adminDeployer.address, gasLimit: '100000000000000'});
-
-    });
-
+    // it('mint for team', async function () {
+    //     await increaseTime(day_in_seconds * 51000);
+    //     let contract = EYWANFT.connect(adminDeployer);
+    //     await contract.claimTeamNft({from: adminDeployer.address, gasLimit: '100000000000000'});
+    //
+    // });
 
 
 });

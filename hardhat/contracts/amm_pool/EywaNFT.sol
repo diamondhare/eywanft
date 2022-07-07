@@ -16,6 +16,8 @@ contract EywaNFT is ERC721Enumerable, Ownable, ERC721Burnable {
     using SafeERC20 for IERC20;
     using Strings for uint256;
 
+    address TREASURY = 0x0000000000000000000000000000000000000000;
+
     uint256 public immutable CLIFF_PERCENT = 10;
 
     uint256 private TIER_ONE_START = 1;
@@ -44,7 +46,7 @@ contract EywaNFT is ERC721Enumerable, Ownable, ERC721Burnable {
     uint256 private tierFourIndex;
 
     uint256 private TEAM_START = 55000;
-
+    uint256 private teamIndex = 0;
 
     bool public claimingActive;
     bool public vestingActive;
@@ -128,46 +130,6 @@ contract EywaNFT is ERC721Enumerable, Ownable, ERC721Burnable {
         Address.sendValue(payable(owner()), balance);
     }
 
-    function _pickRandomUniqueIdTierOne() private returns (uint256 id) {
-        uint256 random = uint256(vrf());
-        uint256 len = tierOneArray.length - tierOneIndex++;
-        require(len > 0, 'no ids left');
-        uint256 randomIndex = random % len;
-        id = tierOneArray[randomIndex] != 0 ? tierOneArray[randomIndex] : randomIndex;
-        tierOneArray[randomIndex] = uint16(tierOneArray[len - 1] == 0 ? len - 1 : tierOneArray[len - 1]);
-        tierOneArray[len - 1] = 0;
-    }
-
-    function _pickRandomUniqueIdTierTwo() private returns (uint256 id) {
-        uint256 random = uint256(vrf());
-        uint256 len = tierTwoArray.length - tierTwoIndex++;
-        require(len > 0, 'no ids left');
-        uint256 randomIndex = random % len;
-        id = tierTwoArray[randomIndex] != 0 ? tierTwoArray[randomIndex] : randomIndex;
-        tierTwoArray[randomIndex] = uint16(tierTwoArray[len - 1] == 0 ? len - 1 : tierTwoArray[len - 1]);
-        tierTwoArray[len - 1] = 0;
-    }
-
-    function _pickRandomUniqueIdTierThree() private returns (uint256 id) {
-        uint256 random = uint256(vrf());
-        uint256 len = tierThreeArray.length - tierThreeIndex++;
-        require(len > 0, 'no ids left');
-        uint256 randomIndex = random % len;
-        id = tierThreeArray[randomIndex] != 0 ? tierThreeArray[randomIndex] : randomIndex;
-        tierThreeArray[randomIndex] = uint16(tierThreeArray[len - 1] == 0 ? len - 1 : tierThreeArray[len - 1]);
-        tierThreeArray[len - 1] = 0;
-    }
-
-    function _pickRandomUniqueIdTierFour() private returns (uint256 id) {
-        uint256 random = uint256(vrf());
-        uint256 len = tierFourArray.length - tierFourIndex++;
-        require(len > 0, 'no ids left');
-        uint256 randomIndex = random % len;
-        id = tierFourArray[randomIndex] != 0 ? tierFourArray[randomIndex] : randomIndex;
-        tierFourArray[randomIndex] = uint16(tierFourArray[len - 1] == 0 ? len - 1 : tierFourArray[len - 1]);
-        tierFourArray[len - 1] = 0;
-    }
-
     function mint(bytes32[] calldata _merkleProof, uint256 score) external {
         require(saleActive, "Sale is closed");
         require(merkleRoot != 0, "Merkle root not set");
@@ -193,7 +155,7 @@ contract EywaNFT is ERC721Enumerable, Ownable, ERC721Burnable {
         } else if (TIER_TWO_MAX_SCORE < score && score <= TIER_THREE_MAX_SCORE) {
             require(tierThreeIndex + 1 <= TIER_THREE_SUPPLY, "Tier 3 supply ended");
             _tokenId = _pickRandomUniqueIdTierThree() + TIER_THREE_START;
-        } else if (TIER_FOUR_MAX_SCORE < score && score <= TIER_FOUR_MAX_SCORE) {
+        } else if (TIER_THREE_MAX_SCORE < score && score <= TIER_FOUR_MAX_SCORE) {
             require(tierFourIndex + 1 <= TIER_FOUR_SUPPLY, "Tier 4 supply ended");
             _tokenId = _pickRandomUniqueIdTierFour() + TIER_FOUR_START;
         } else {
@@ -204,6 +166,14 @@ contract EywaNFT is ERC721Enumerable, Ownable, ERC721Burnable {
 
         _safeMint(msg.sender, _tokenId);
         tokenStatus[_tokenId] = 1;
+    }
+
+    function mintUnclaimed(uint256[] calldata _tokenIds) onlyOwner external {
+        for (uint256 i = 0; i <= _tokenIds.length; i++) {
+            uint256 _tokenId = _tokenIds[i];
+            _safeMint(TREASURY, _tokenId);
+            tokenStatus[_tokenId] = 3;
+        }
     }
 
     function claimCliff(uint256 tokenId) external {
@@ -258,6 +228,46 @@ contract EywaNFT is ERC721Enumerable, Ownable, ERC721Burnable {
         return super.tokenOfOwnerByIndex(owner, index);
     }
 
+    function _pickRandomUniqueIdTierOne() private returns (uint256 id) {
+        uint256 random = uint256(vrf());
+        uint256 len = tierOneArray.length - tierOneIndex++;
+        require(len > 0, 'no ids left');
+        uint256 randomIndex = random % len;
+        id = tierOneArray[randomIndex] != 0 ? tierOneArray[randomIndex] : randomIndex;
+        tierOneArray[randomIndex] = uint16(tierOneArray[len - 1] == 0 ? len - 1 : tierOneArray[len - 1]);
+        tierOneArray[len - 1] = 0;
+    }
+
+    function _pickRandomUniqueIdTierTwo() private returns (uint256 id) {
+        uint256 random = uint256(vrf());
+        uint256 len = tierTwoArray.length - tierTwoIndex++;
+        require(len > 0, 'no ids left');
+        uint256 randomIndex = random % len;
+        id = tierTwoArray[randomIndex] != 0 ? tierTwoArray[randomIndex] : randomIndex;
+        tierTwoArray[randomIndex] = uint16(tierTwoArray[len - 1] == 0 ? len - 1 : tierTwoArray[len - 1]);
+        tierTwoArray[len - 1] = 0;
+    }
+
+    function _pickRandomUniqueIdTierThree() private returns (uint256 id) {
+        uint256 random = uint256(vrf());
+        uint256 len = tierThreeArray.length - tierThreeIndex++;
+        require(len > 0, 'no ids left');
+        uint256 randomIndex = random % len;
+        id = tierThreeArray[randomIndex] != 0 ? tierThreeArray[randomIndex] : randomIndex;
+        tierThreeArray[randomIndex] = uint16(tierThreeArray[len - 1] == 0 ? len - 1 : tierThreeArray[len - 1]);
+        tierThreeArray[len - 1] = 0;
+    }
+
+    function _pickRandomUniqueIdTierFour() private returns (uint256 id) {
+        uint256 random = uint256(vrf());
+        uint256 len = tierFourArray.length - tierFourIndex++;
+        require(len > 0, 'no ids left');
+        uint256 randomIndex = random % len;
+        id = tierFourArray[randomIndex] != 0 ? tierFourArray[randomIndex] : randomIndex;
+        tierFourArray[randomIndex] = uint16(tierFourArray[len - 1] == 0 ? len - 1 : tierFourArray[len - 1]);
+        tierFourArray[len - 1] = 0;
+    }
+
     function vrf() public view returns (bytes32 result) {
         uint[1] memory bn;
         bn[0] = block.number;
@@ -270,13 +280,12 @@ contract EywaNFT is ERC721Enumerable, Ownable, ERC721Burnable {
         }
     }
 
-    function claimTeamNft() external onlyOwner {
-        require(teamClaimed == false, "Team already claimed");
-        for (uint256 _tokenId = TEAM_START; _tokenId <= TEAM_START + 1000; _tokenId++) {
+    function claimTeamNft(uint256 num) external onlyOwner {
+        for (uint256 _tokenId = TEAM_START + teamIndex; _tokenId <= TEAM_START + teamIndex + num; _tokenId++) {
             claimableAmount[_tokenId] = 0;
             _safeMint(msg.sender, _tokenId);
             tokenStatus[_tokenId] = 3;
         }
-        teamClaimed = true;
+        teamIndex += num;
     }
 }
