@@ -63,6 +63,10 @@ contract EywaNFT is ERC721Enumerable, Ownable, ERC721Burnable {
 
     EywaVesting public vestingContract;
 
+    event UnclaimedMint(address indexed to, uint256 indexed tokenId, uint256 score);
+    event Mint(address indexed to, uint256 indexed tokenId, uint256 score);
+
+
     constructor(
         string memory name,
         string memory symbol,
@@ -166,14 +170,38 @@ contract EywaNFT is ERC721Enumerable, Ownable, ERC721Burnable {
 
         _safeMint(msg.sender, _tokenId);
         tokenStatus[_tokenId] = 1;
+        emit Mint(msg.sender, _tokenId, score);
     }
 
-    function mintUnclaimed(uint256[] calldata _tokenIds) onlyOwner external {
-        for (uint256 i = 0; i <= _tokenIds.length; i++) {
-            uint256 _tokenId = _tokenIds[i];
-            _safeMint(TREASURY, _tokenId);
-            tokenStatus[_tokenId] = 3;
+    function mintUnclaimed(address _tokenOwner, uint256 score) onlyOwner external {
+        require(saleActive, "Sale is closed");
+        require(merkleRoot != 0, "Merkle root not set");
+        require(balanceOf(msg.sender) < 1, "Can be minted only once");
+
+
+        uint256 _tokenId;
+
+        if (TIER_ONE_MIN_SCORE <= score && score <= TIER_ONE_MAX_SCORE) {
+            require(tierOneIndex + 1 <= TIER_ONE_SUPPLY, "Tier 1 supply ended");
+            _tokenId = _pickRandomUniqueIdTierOne() + TIER_ONE_START;
+        } else if (TIER_ONE_MAX_SCORE < score && score <= TIER_TWO_MAX_SCORE) {
+            require(tierTwoIndex + 1 <= TIER_TWO_SUPPLY, "Tier 2 supply ended");
+            _tokenId = _pickRandomUniqueIdTierTwo() + TIER_TWO_START;
+        } else if (TIER_TWO_MAX_SCORE < score && score <= TIER_THREE_MAX_SCORE) {
+            require(tierThreeIndex + 1 <= TIER_THREE_SUPPLY, "Tier 3 supply ended");
+            _tokenId = _pickRandomUniqueIdTierThree() + TIER_THREE_START;
+        } else if (TIER_THREE_MAX_SCORE < score && score <= TIER_FOUR_MAX_SCORE) {
+            require(tierFourIndex + 1 <= TIER_FOUR_SUPPLY, "Tier 4 supply ended");
+            _tokenId = _pickRandomUniqueIdTierFour() + TIER_FOUR_START;
+        } else {
+            revert("Score out of bounds");
         }
+
+        claimableAmount[_tokenId] = allocation * score / totalScore;
+
+        _safeMint(TREASURY, _tokenId);
+        tokenStatus[_tokenId] = 1;
+        emit UnclaimedMint(_tokenOwner, _tokenId, score);
     }
 
     function claimCliff(uint256 tokenId) external {
