@@ -102,7 +102,7 @@ contract EywaNFT is ERC721Enumerable, Ownable, ERC721Burnable {
     }
 
     function setTotalScore(uint256 _totScore) external onlyOwner {
-        allocation = _totScore;
+        totalScore = _totScore;
     }
 
     function setBaseURI(string memory _uri) external onlyOwner {
