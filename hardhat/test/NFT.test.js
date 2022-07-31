@@ -158,6 +158,18 @@ describe('NFT tests', () => {
         expect(await EYWANFT.symbol()).to.equal("EYWANFT");
     });
 
+    it('Generates pseudorandom values', async function () {
+        const numbers = [];
+        for (let i = 0; i < 10; i++) {
+            const num = await EYWANFT.genRandom();
+            numbers.push(num.toString());
+            await hre.network.provider.request({
+                method: "evm_mine",
+            });
+        }
+        expect(new Set(numbers).size === 1, false)
+    });
+
 
     it('try mint without merkle root', async function () {
         const proof = ethers.utils.formatBytes32String("test");
@@ -179,10 +191,13 @@ describe('NFT tests', () => {
 
         expect(await contract.totalSupply()).to.equal(0);
 
-        await contract.mint(proof, addr.amount, {from: addr.address});
+        const tx1 = await contract.mint(proof, addr.amount, {from: addr.address});
+        const txReceipt1 = await tx1.wait();
+        const mintEvent1 = txReceipt1.events[1];
+        const id1 = mintEvent1.args.tokenId.toNumber();
 
         expect(await contract.totalSupply()).to.equal(1);
-        expect(await contract.ownerOf(1)).to.equal(addr.address);
+        expect(await contract.ownerOf(id1)).to.equal(addr.address);
 
         await expect(contract.mint(proof, addr.amount, {from: addr.address}))
             .to.be
@@ -192,8 +207,11 @@ describe('NFT tests', () => {
         addr = merkleAddresses[1];
         proof = merkleTree.getHexProof(ethers.utils.keccak256(getAddrPacked(addr)));
         contract = EYWANFT.connect(addr2);
-        await contract.mint(proof, addr.amount, {from: addr.address});
-        expect(await contract.ownerOf(25083)).to.equal(addr.address);
+        const tx2 = await contract.mint(proof, addr.amount, {from: addr.address});
+        const txReceipt2 = await tx2.wait();
+        const mintEvent2 = txReceipt2.events[1];
+        const id2 = mintEvent2.args.tokenId.toNumber();
+        expect(await contract.ownerOf(id2)).to.equal(addr.address);
     });
 
     it('mint and claim cliff', async function () {
@@ -207,51 +225,45 @@ describe('NFT tests', () => {
         await EYWANFT.setMerkleRoot(root);
         let contract = EYWANFT.connect(addr1);
 
-        await contract.mint(proof, addr.amount, {from: addr.address});
+        const tx1 = await contract.mint(proof, addr.amount, {from: addr.address});
+        const txReceipt1 = await tx1.wait();
+        const mintEvent1 = txReceipt1.events[1];
+        const id1 = mintEvent1.args.tokenId.toNumber();
 
-        expect(await contract.getTokenStatus(1)).to.equal(1);
+        expect(await contract.getTokenStatus(id1)).to.equal(1);
         expect(await contract.balanceOf(addr.address)).to.equal(1);
-        expect(await contract.ownerOf(1)).to.equal(addr.address);
+        expect(await contract.ownerOf(id1)).to.equal(addr.address);
         expect(await vesting.balanceOf(EYWANFT.address)).to.equal(vestingSupply);
 
-        await expect(contract.claimCliff(1, {from: addr.address}))
+        await expect(contract.claimCliff(id1, {from: addr.address}))
             .to.be
             .revertedWith('Claiming period not started');
 
         await EYWANFT.connect(adminDeployer).startClaiming({from: adminDeployer.address});
 
-        await contract.claimCliff(1, {from: addr.address});
+        await contract.claimCliff(id1, {from: addr.address});
 
-        expect(await contract.getTokenStatus(1 + shift)).to.equal(2);
+        expect(await contract.getTokenStatus(id1 + shift)).to.equal(2);
         const contractBalance = Math.round(vestingSupply - vestingSupply * addr.amount / totalScore * 0.1);
         expect(await vesting.balanceOf(EYWANFT.address)).to.equal(contractBalance);
         expect(await contract.balanceOf(addr.address)).to.equal(1);
-        expect(await contract.ownerOf(1 + shift)).to.equal(addr.address);
+        expect(await contract.ownerOf(id1 + shift)).to.equal(addr.address);
 
-        await expect(contract.activateVesting(1, {from: addr.address}))
+        await expect(contract.activateVesting(id1, {from: addr.address}))
             .to.be
             .revertedWith('Vesting period not started');
 
         await EYWANFT.connect(adminDeployer).startVesting({from: adminDeployer.address});
 
-        await contract.activateVesting(1 + shift, {from: addr.address});
+        await contract.activateVesting(id1 + shift, {from: addr.address});
 
-        expect(await contract.getTokenStatus(1 + shift)).to.equal(0);
-        expect(await contract.getTokenStatus(1 + shift * 2)).to.equal(3);
-        expect(await contract.ownerOf(1 + shift * 2)).to.equal(addr.address);
+        expect(await contract.getTokenStatus(id1 + shift)).to.equal(0);
+        expect(await contract.getTokenStatus(id1 + shift * 2)).to.equal(3);
+        expect(await contract.ownerOf(id1 + shift * 2)).to.equal(addr.address);
         expect(await contract.balanceOf(addr.address)).to.equal(1);
         const vestingBalance = Math.floor(vestingSupply * addr.amount / totalScore * 0.9);
         expect(await vesting.balanceOf(addr.address)).to.equal(vestingBalance);
 
     });
-
-
-    // it('mint for team', async function () {
-    //     await increaseTime(day_in_seconds * 51000);
-    //     let contract = EYWANFT.connect(adminDeployer);
-    //     await contract.claimTeamNft({from: adminDeployer.address, gasLimit: '100000000000000'});
-    //
-    // });
-
 
 });
