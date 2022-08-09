@@ -58,6 +58,7 @@ contract EywaNFT is ERC721Enumerable, Ownable, ERC721Burnable {
     string private baseURI;
 
     mapping(uint256 => uint8) private tokenStatus;
+    mapping(address => uint256) private mintedBy;
     mapping(uint256 => uint256) private claimableAmount;
 
     EywaVesting public vestingContract;
@@ -136,7 +137,7 @@ contract EywaNFT is ERC721Enumerable, Ownable, ERC721Burnable {
     function mint(bytes32[] calldata _merkleProof, uint256 score) external {
         require(saleActive, "Sale is closed");
         require(merkleRoot != 0, "Merkle root not set");
-        require(balanceOf(msg.sender) < 1, "Can be minted only once");
+        require(getMintedNum(msg.sender) < 1, "Can be minted only once");
 
         require(
             MerkleProof.verify(
@@ -145,7 +146,6 @@ contract EywaNFT is ERC721Enumerable, Ownable, ERC721Burnable {
                 keccak256(abi.encodePacked(msg.sender, score)
                 )
             ), "Invalid proof");
-
 
         uint256 _tokenId;
 
@@ -169,6 +169,7 @@ contract EywaNFT is ERC721Enumerable, Ownable, ERC721Burnable {
 
         _safeMint(msg.sender, _tokenId);
         tokenStatus[_tokenId] = 1;
+        mintedBy[msg.sender] += 1;
         emit Mint(msg.sender, _tokenId, score);
     }
 
@@ -200,7 +201,7 @@ contract EywaNFT is ERC721Enumerable, Ownable, ERC721Burnable {
 
     function claimCliff(uint256 tokenId) external {
         require(claimingActive, "Claiming period not started");
-        require(_isApprovedOrOwner(_msgSender(), tokenId), "Caller is not owner nor approved");
+        require(_isApprovedOrOwner(msg.sender, tokenId), "Caller is not owner nor approved");
         require(claimableAmount[tokenId] != 0, "Must have claimable amount");
         require(tokenStatus[tokenId] == 1, "Token must have unclaimed cliff");
 
@@ -222,7 +223,7 @@ contract EywaNFT is ERC721Enumerable, Ownable, ERC721Burnable {
 
     function activateVesting(uint256 tokenId) external {
         require(vestingActive, "Vesting period not started");
-        require(_isApprovedOrOwner(_msgSender(), tokenId), "Caller is not owner nor approved");
+        require(_isApprovedOrOwner(msg.sender, tokenId), "Caller is not owner nor approved");
         require(claimableAmount[tokenId] != 0, "Must have claimable amount");
         require(tokenStatus[tokenId] == 2, "Token must have unclaimed cliff");
 
@@ -288,6 +289,10 @@ contract EywaNFT is ERC721Enumerable, Ownable, ERC721Burnable {
         id = tierFourArray[randomIndex] != 0 ? tierFourArray[randomIndex] : randomIndex;
         tierFourArray[randomIndex] = uint16(tierFourArray[len - 1] == 0 ? len - 1 : tierFourArray[len - 1]);
         tierFourArray[len - 1] = 0;
+    }
+
+    function getMintedNum(address owner) private view returns (uint256) {
+        return mintedBy[owner];
     }
 
     function genRandom() public view returns (uint256) {
