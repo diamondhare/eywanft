@@ -14,6 +14,7 @@ import "./Vesting.sol";
 
 contract EywaNFT is ERC721Enumerable, Ownable, ERC721Burnable {
     using SafeERC20 for IERC20;
+    using Strings for uint256;
 
     address TREASURY = 0x0000000000000000000000000000000000000000;
 
@@ -139,7 +140,6 @@ contract EywaNFT is ERC721Enumerable, Ownable, ERC721Burnable {
 
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
         require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
-        string memory baseURI = _baseURI();
         return bytes(baseURI).length > 0 ? string(abi.encodePacked(baseURI, tokenId.toString(), ".json")) : '';
     }
 
