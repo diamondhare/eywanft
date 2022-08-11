@@ -44,8 +44,20 @@ contract EywaNFT is ERC721Enumerable, Ownable, ERC721Burnable {
     uint256[401] private tierFourArray;
     uint256 private tierFourIndex;
 
-    uint256 private TEAM_START = 55000;
-    uint256 private teamIndex = 0;
+    uint256 private TEAM_LEGENDARY_START = 55000;
+    uint256 private TEAM_RARE_START = 55400;
+    uint256 private TEAM_UNCOMMON_START = 55700;
+    uint256 private TEAM_COMMON_START = 55900;
+
+    uint256 private teamLegendaryIndex = 0;
+    uint256 private teamRareIndex = 0;
+    uint256 private teamUncommonIndex = 0;
+    uint256 private teamCommonIndex = 0;
+
+    uint256 private teamLegendaryScore = 4867;
+    uint256 private teamRareScore = 2921;
+    uint256 private teamUncommonScore = 1947;
+    uint256 private teamCommonScore = 1460;
 
     bool public claimingActive;
     bool public vestingActive;
@@ -299,12 +311,51 @@ contract EywaNFT is ERC721Enumerable, Ownable, ERC721Burnable {
         return uint256(blockhash(block.number - 1));
     }
 
-    function claimTeamNft(uint256 num) external onlyOwner {
-        for (uint256 _tokenId = TEAM_START + teamIndex; _tokenId <= TEAM_START + teamIndex + num; _tokenId++) {
-            claimableAmount[_tokenId] = 0;
+    function claimTeamLegendary(uint num) external onlyOwner {
+        require(teamLegendaryIndex < 400, "No legendary nfts left");
+        uint256 start = TEAM_LEGENDARY_START + teamLegendaryIndex;
+        uint256 end = start + num;
+        for (uint256 _tokenId = start; _tokenId < end; _tokenId++) {
+            claimableAmount[_tokenId] = teamLegendaryScore;
             _safeMint(msg.sender, _tokenId);
-            tokenStatus[_tokenId] = 3;
+            tokenStatus[_tokenId] = 1;
         }
-        teamIndex += num;
+        teamLegendaryIndex += num;
+    }
+
+    function claimTeamRare(uint num) external onlyOwner {
+        require(teamRareIndex < 300, "No rare nfts left");
+        uint256 start = TEAM_RARE_START + teamRareIndex;
+        uint256 end = start + num;
+        for (uint256 _tokenId = start; _tokenId < end; _tokenId++) {
+            claimableAmount[_tokenId] = teamRareScore;
+            _safeMint(msg.sender, _tokenId);
+            tokenStatus[_tokenId] = 1;
+        }
+        teamRareIndex += num;
+    }
+
+    function claimTeamUncommon(uint num) external onlyOwner {
+        require(teamUncommonIndex < 200, "No rare nfts left");
+        uint256 start = TEAM_UNCOMMON_START + teamUncommonIndex;
+        uint256 end = start + num;
+        for (uint256 _tokenId = start; _tokenId < end; _tokenId++) {
+            claimableAmount[_tokenId] = teamUncommonScore;
+            _safeMint(msg.sender, _tokenId);
+            tokenStatus[_tokenId] = 1;
+        }
+        teamUncommonIndex += num;
+    }
+
+    function claimTeamCommon(uint num) external onlyOwner {
+        require(teamCommonIndex < 100, "No rare nfts left");
+        uint256 start = TEAM_COMMON_START + teamCommonIndex;
+        uint256 end = start + num;
+        for (uint256 _tokenId = start; _tokenId < end; _tokenId++) {
+            claimableAmount[_tokenId] = teamCommonScore;
+            _safeMint(msg.sender, _tokenId);
+            tokenStatus[_tokenId] = 1;
+        }
+        teamCommonIndex += num;
     }
 }
