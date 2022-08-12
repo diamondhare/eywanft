@@ -272,6 +272,7 @@ contract EywaNFT is ERC721Enumerable, Ownable, ERC721Burnable {
             claimableAmount[newToken] = 0;
 
         } else {
+            require(address(vestingContract) != address(0), "Vesting contract not set");
             uint256 claimedCliff = claimableAmount[tokenId] * CLIFF_PERCENT / 100;
             uint256 remainingAmount = claimableAmount[tokenId] - claimedCliff;
             vestingContract.claim(claimedCliff);
@@ -290,9 +291,11 @@ contract EywaNFT is ERC721Enumerable, Ownable, ERC721Burnable {
 
     function activateVesting(uint256 tokenId) external {
         require(vestingActive, "Vesting period not started");
+        require(address(vestingContract) != address(0), "Vesting contract not set");
         require(_isApprovedOrOwner(msg.sender, tokenId), "Caller is not owner nor approved");
         require(claimableAmount[tokenId] != 0, "Must have claimable amount");
         require(tokenStatus[tokenId] == 2, "Token must have unclaimed cliff");
+
 
         vestingContract.transfer(msg.sender, claimableAmount[tokenId]);
         burn(tokenId);
