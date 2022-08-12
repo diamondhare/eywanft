@@ -55,10 +55,10 @@ contract EywaNFT is ERC721Enumerable, Ownable, ERC721Burnable {
     uint256 private teamUncommonIndex = 0;
     uint256 private teamCommonIndex = 0;
 
-    uint256 private teamLegendaryAllocation = 500 ether;
-    uint256 private teamRareAllocation = 250 ether;
-    uint256 private teamUncommonAllocation = 200 ether;
-    uint256 private teamCommonAllocation = 150 ether;
+    uint256 public teamLegendaryAllocation = 500 ether;
+    uint256 public teamRareAllocation = 250 ether;
+    uint256 public teamUncommonAllocation = 200 ether;
+    uint256 public teamCommonAllocation = 150 ether;
 
     uint256 private idIncrement = 100000;
 
