@@ -153,8 +153,28 @@ contract EywaNFT is ERC721Enumerable, Ownable, ERC721Burnable {
         return bytes(baseURI).length > 0 ? string(abi.encodePacked(baseURI, tokenId.toString(), ".json")) : '';
     }
 
-    function getTokenStatus(uint256 tokenId) external view returns (uint8) {
-        return tokenStatus[tokenId];
+    function getTokenStatus(uint256 _tokenId) external view returns (uint8) {
+        return tokenStatus[_tokenId];
+    }
+
+    function getClaimableAmount(uint256 _tokenId) external view returns (uint256) {
+        return claimableAmount[_tokenId];
+    }
+
+    function setTeamLegendaryAllocation(uint256 _alloc) external onlyOwner {
+        teamLegendaryAllocation = _alloc;
+    }
+
+    function setTeamRareAllocation(uint256 _alloc) external onlyOwner {
+        teamRareAllocation = _alloc;
+    }
+
+    function setTeamUncommonAllocation(uint256 _alloc) external onlyOwner {
+        teamUncommonAllocation = _alloc;
+    }
+
+    function setTeamCommonAllocation(uint256 _alloc) external onlyOwner {
+        teamCommonAllocation = _alloc;
     }
 
     function withdraw() external onlyOwner {
