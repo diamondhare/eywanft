@@ -138,6 +138,10 @@ contract EywaNFT is ERC721Enumerable, Ownable, ERC721Burnable {
         saleActive = false;
     }
 
+    function setTreasury(address _treasury) external onlyOwner {
+        TREASURY = _treasury;
+    }
+
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
         require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
         return bytes(baseURI).length > 0 ? string(abi.encodePacked(baseURI, tokenId.toString(), ".json")) : '';
@@ -214,6 +218,7 @@ contract EywaNFT is ERC721Enumerable, Ownable, ERC721Burnable {
 
         _safeMint(TREASURY, _tokenId);
         tokenStatus[_tokenId] = 1;
+        mintedBy[_tokenOwner] += 1;
         emit UnclaimedMint(_tokenOwner, _tokenId, score);
     }
 
