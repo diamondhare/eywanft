@@ -166,7 +166,9 @@ describe('NFT tests', () => {
             await hre.network.provider.request({
                 method: "evm_mine",
             });
+
         }
+        console.log(numbers);
         expect(new Set(numbers).size === 1, false)
     });
 

@@ -16,7 +16,7 @@ contract EywaNFT is ERC721Enumerable, Ownable, ERC721Burnable {
     using SafeERC20 for IERC20;
     using Strings for uint256;
 
-    address TREASURY = 0x0000000000000000000000000000000000000000;
+    address TREASURY = address(0);
 
     uint256 public immutable CLIFF_PERCENT = 10;
 
@@ -55,26 +55,28 @@ contract EywaNFT is ERC721Enumerable, Ownable, ERC721Burnable {
     uint256 private teamUncommonIndex = 0;
     uint256 private teamCommonIndex = 0;
 
-    uint256 private teamLegendaryScore = 4867;
-    uint256 private teamRareScore = 2921;
-    uint256 private teamUncommonScore = 1947;
-    uint256 private teamCommonScore = 1460;
+    uint256 private teamLegendaryAllocation = 500 ether;
+    uint256 private teamRareAllocation = 250 ether;
+    uint256 private teamUncommonAllocation = 200 ether;
+    uint256 private teamCommonAllocation = 150 ether;
+
+    uint256 private idIncrement = 100000;
 
     bool public claimingActive;
     bool public vestingActive;
     bool public saleActive;
-    bool public teamClaimed;
 
     uint256 private allocation;
     uint256 private totalScore;
     bytes32 private merkleRoot;
     string private baseURI;
 
-    mapping(uint256 => uint8) private tokenStatus;
-    mapping(address => uint256) private mintedBy;
-    mapping(uint256 => uint256) private claimableAmount;
+    mapping(uint256 => uint8) public tokenStatus;
+    mapping(address => uint256) public mintedBy;
+    mapping(uint256 => uint256) public claimableAmount;
 
     EywaVesting public vestingContract;
+    IERC20 public EYWA_TOKEN;
 
     event UnclaimedMint(address indexed to, uint256 indexed tokenId, uint256 score);
     event Mint(address indexed to, uint256 indexed tokenId, uint256 score);
@@ -128,6 +130,10 @@ contract EywaNFT is ERC721Enumerable, Ownable, ERC721Burnable {
 
     function setVestingAddress(EywaVesting _vestingContract) external onlyOwner {
         vestingContract = _vestingContract;
+    }
+
+    function setEywaTokenAddress(IERC20 _eywaToken) external onlyOwner {
+        EYWA_TOKEN = _eywaToken;
     }
 
     function setSaleOpen() external onlyOwner {
@@ -228,17 +234,31 @@ contract EywaNFT is ERC721Enumerable, Ownable, ERC721Burnable {
         require(claimableAmount[tokenId] != 0, "Must have claimable amount");
         require(tokenStatus[tokenId] == 1, "Token must have unclaimed cliff");
 
-        uint256 claimedCliff = claimableAmount[tokenId] * CLIFF_PERCENT / 100;
-        uint256 remainingAmount = claimableAmount[tokenId] - claimedCliff;
-        vestingContract.claim(claimedCliff);
-        vestingContract.eywaToken().safeTransfer(msg.sender, claimedCliff);
-        burn(tokenId);
 
-        uint256 newToken = tokenId + 100000;
+        if (isTeamNft(tokenId)) {
+            require(address(EYWA_TOKEN) != address(0), "Eywa token address not set");
+            require(EYWA_TOKEN.balanceOf(address(this)) >= claimableAmount[tokenId], "Not enough tokens");
 
-        _safeMint(msg.sender, newToken);
-        tokenStatus[newToken] = 2;
-        claimableAmount[newToken] = remainingAmount;
+            EYWA_TOKEN.transfer(msg.sender, claimableAmount[tokenId]);
+            burn(tokenId);
+
+            uint256 newToken = tokenId + idIncrement * 2;
+            _safeMint(msg.sender, newToken);
+            tokenStatus[newToken] = 3;
+            claimableAmount[newToken] = 0;
+
+        } else {
+            uint256 claimedCliff = claimableAmount[tokenId] * CLIFF_PERCENT / 100;
+            uint256 remainingAmount = claimableAmount[tokenId] - claimedCliff;
+            vestingContract.claim(claimedCliff);
+            vestingContract.eywaToken().safeTransfer(msg.sender, claimedCliff);
+            burn(tokenId);
+
+            uint256 newToken = tokenId + idIncrement;
+            _safeMint(msg.sender, newToken);
+            tokenStatus[newToken] = 2;
+            claimableAmount[newToken] = remainingAmount;
+        }
 
         delete tokenStatus[tokenId];
         delete claimableAmount[tokenId];
@@ -253,7 +273,7 @@ contract EywaNFT is ERC721Enumerable, Ownable, ERC721Burnable {
         vestingContract.transfer(msg.sender, claimableAmount[tokenId]);
         burn(tokenId);
 
-        uint256 newToken = tokenId + 100000;
+        uint256 newToken = tokenId + idIncrement;
 
         _safeMint(msg.sender, newToken);
         tokenStatus[newToken] = 3;
@@ -327,7 +347,7 @@ contract EywaNFT is ERC721Enumerable, Ownable, ERC721Burnable {
         uint256 start = TEAM_LEGENDARY_START + teamLegendaryIndex;
         uint256 end = start + num;
         for (uint256 _tokenId = start; _tokenId < end; _tokenId++) {
-            claimableAmount[_tokenId] = teamLegendaryScore;
+            claimableAmount[_tokenId] = teamLegendaryAllocation;
             _safeMint(msg.sender, _tokenId);
             tokenStatus[_tokenId] = 1;
         }
@@ -339,7 +359,7 @@ contract EywaNFT is ERC721Enumerable, Ownable, ERC721Burnable {
         uint256 start = TEAM_RARE_START + teamRareIndex;
         uint256 end = start + num;
         for (uint256 _tokenId = start; _tokenId < end; _tokenId++) {
-            claimableAmount[_tokenId] = teamRareScore;
+            claimableAmount[_tokenId] = teamRareAllocation;
             _safeMint(msg.sender, _tokenId);
             tokenStatus[_tokenId] = 1;
         }
@@ -347,11 +367,11 @@ contract EywaNFT is ERC721Enumerable, Ownable, ERC721Burnable {
     }
 
     function claimTeamUncommon(uint num) external onlyOwner {
-        require(teamUncommonIndex < 200, "No rare nfts left");
+        require(teamUncommonIndex < 200, "No uncommon nfts left");
         uint256 start = TEAM_UNCOMMON_START + teamUncommonIndex;
         uint256 end = start + num;
         for (uint256 _tokenId = start; _tokenId < end; _tokenId++) {
-            claimableAmount[_tokenId] = teamUncommonScore;
+            claimableAmount[_tokenId] = teamUncommonAllocation;
             _safeMint(msg.sender, _tokenId);
             tokenStatus[_tokenId] = 1;
         }
@@ -359,14 +379,19 @@ contract EywaNFT is ERC721Enumerable, Ownable, ERC721Burnable {
     }
 
     function claimTeamCommon(uint num) external onlyOwner {
-        require(teamCommonIndex < 100, "No rare nfts left");
+        require(teamCommonIndex < 100, "No common nfts left");
         uint256 start = TEAM_COMMON_START + teamCommonIndex;
         uint256 end = start + num;
         for (uint256 _tokenId = start; _tokenId < end; _tokenId++) {
-            claimableAmount[_tokenId] = teamCommonScore;
+            claimableAmount[_tokenId] = teamCommonAllocation;
             _safeMint(msg.sender, _tokenId);
             tokenStatus[_tokenId] = 1;
         }
         teamCommonIndex += num;
+    }
+
+    function isTeamNft(uint256 _tokenId) private view returns (bool) {
+        _tokenId = _tokenId % idIncrement;
+        return TEAM_LEGENDARY_START <= _tokenId && _tokenId < TEAM_LEGENDARY_START + 1000;
     }
 }
