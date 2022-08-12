@@ -18,7 +18,7 @@ contract EywaNFT is ERC721Enumerable, Ownable, ERC721Burnable {
 
     address TREASURY = address(0);
 
-    uint256 public immutable CLIFF_PERCENT = 10;
+    uint256 public CLIFF_PERCENT = 10;
 
     uint256 private TIER_ONE_START = 1;
     uint256 private TIER_ONE_SUPPLY = 25077;
@@ -175,6 +175,10 @@ contract EywaNFT is ERC721Enumerable, Ownable, ERC721Burnable {
 
     function setTeamCommonAllocation(uint256 _alloc) external onlyOwner {
         teamCommonAllocation = _alloc;
+    }
+
+    function setCliffPercent(uint256 _cliffPercent) external onlyOwner {
+        CLIFF_PERCENT = _cliffPercent;
     }
 
     function withdraw() external onlyOwner {
