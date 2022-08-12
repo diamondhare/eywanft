@@ -168,8 +168,7 @@ describe('NFT tests', () => {
             });
 
         }
-        console.log(numbers);
-        expect(new Set(numbers).size === 1, false)
+        expect(new Set(numbers).size === 1, false);
     });
 
 
@@ -265,6 +264,41 @@ describe('NFT tests', () => {
         expect(await contract.balanceOf(addr.address)).to.equal(1);
         const vestingBalance = Math.floor(vestingSupply * addr.amount / totalScore * 0.9);
         expect(await vesting.balanceOf(addr.address)).to.equal(vestingBalance);
+
+    });
+
+
+    it('Should mint for team', async function () {
+        await increaseTime(day_in_seconds * 51000);
+
+        const leaves = merkleAddresses.map(x => getAddrPacked(x));
+        const addr = merkleAddresses[0];
+        const merkleTree = new MerkleTree(leaves, ethers.utils.keccak256, {hashLeaves: true, sortPairs: true});
+        const root = merkleTree.getHexRoot();
+        const proof = merkleTree.getHexProof(ethers.utils.keccak256(getAddrPacked(addr)));
+        await EYWANFT.setMerkleRoot(root);
+        let contract = EYWANFT.connect(adminDeployer);
+
+        const tx1 = await contract.claimTeamLegendary(2);
+        const txReceipt1 = await tx1.wait();
+        const mintEvent1 = txReceipt1.events[0];
+        const id1 = mintEvent1.args.tokenId.toNumber();
+        expect(id1).to.equal(55000);
+        await contract.startClaiming();
+        await expect(contract.claimCliff(id1))
+            .to.be
+            .revertedWith('Eywa token address not set');
+
+        await contract.setEywaTokenAddress(tokenErc20.address);
+        await tokenErc20.mint(EYWANFT.address, ethers.utils.parseEther("1"));
+        await expect(contract.claimCliff(id1))
+            .to.be
+            .revertedWith('Not enough tokens');
+        await tokenErc20.mint(EYWANFT.address, ethers.utils.parseEther("500"));
+        await contract.claimCliff(id1);
+
+        expect(await tokenErc20.balanceOf(adminDeployer.address)).to.equal(ethers.utils.parseEther("500"));
+
 
     });
 
